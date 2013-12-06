@@ -1,3 +1,4 @@
+// TODO: This entire file is complete prototyping garbage. Clean it up.
 
 // TODO: Figure out real requirements and test for 'em
 if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -6,7 +7,7 @@ if (window.File && window.FileReader && window.FileList && window.Blob) {
     alert('The File APIs are not fully supported in this browser.');
 }
 
-// TODO: This is complete garbage. Clean it up.
+// Todo ugh, close all of this.
 window.frames = [];
 window.tmpCanvas = document.createElement('canvas');
 window.sampleImg = document.getElementById('sampleImg');
@@ -19,6 +20,7 @@ function showError(msg) {
     $('.gif-drop-icon').removeClass('spin');
     $('.gif-drop-text').html($('.gif-drop-text').data('orig-html'));
 
+    // Todo proper error msg
     alert(msg);
 }
 
@@ -35,11 +37,10 @@ function handleFileSelect(evt) {
 
     reader.onload = function(e) {
 
+        /** Note: A lot of this is pulled wholesale from jsgif's demo bookmarklet. **/
         var handler = {
-
             /**
              * Deal with the header of the gif. Particularly, set our processing canvas width and height.
-             *
             **/
             hdr: function(hdr) {
                 tmpCanvas.width = hdr.width;
@@ -57,9 +58,6 @@ function handleFileSelect(evt) {
             img: function(img) {
                 var frame = tmpCanvas.getContext('2d');
                 var cData = frame.getImageData(img.leftPos, img.topPos, img.width, img.height);
-
-                console.log(cData);
-
                 var ct = img.lctFlag ? img.lct : gif_header.gct; // TODO: What if neither exists?
 
                 img.pixels.forEach(function(pixel, i) {
@@ -108,8 +106,6 @@ function handleFileSelect(evt) {
                     document.querySelector('.gif-drop-text').style.display = 'none';
                 });
                 gif.render();
-
-                console.log(window.GIF);
             }
         };
 
