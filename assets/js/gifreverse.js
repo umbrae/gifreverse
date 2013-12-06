@@ -15,6 +15,7 @@ window.transparency = null;
 window.gif_header = null;
 window.disposalMethod = null;
 window.delay = null;
+window.gifstream = null;
 
 function showError(msg) {
     $('.gif-drop-icon').removeClass('spin');
@@ -24,9 +25,25 @@ function showError(msg) {
     alert(msg);
 }
 
+function updateProgressMax(v) {
+    $('#convert-progress').attr('max', v);
+}
+
+function updateProgress(v) {
+    $('#convert-progress').css('display', 'block').val(v);
+}
+
 function handleFileSelect(evt) {
-    var file =  evt.originalEvent.dataTransfer ? evt.originalEvent.dataTransfer.files[0] : evt.target.files[0];
+    var file;
         reader = new FileReader();
+
+    if (evt.originalEvent.dataTransfer) {
+        /* Drag/drop */
+        file = evt.originalEvent.dataTransfer.files[0];
+    } else {
+        /* File input */
+        file = evt.target.files[0];
+    }
 
     evt.stopPropagation();
     evt.preventDefault();
@@ -48,10 +65,13 @@ function handleFileSelect(evt) {
 
                 // Todo: Get rid of this mess.
                 window.gif_header = hdr;
+
+                // Only go to 50% for decoding
+                updateProgressMax(window.gifstream.data.length * 2);
             },
             gce: function(gce) {
                 window.transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
-                window.delay = gce.delayTime || 2;
+                window.delay = gce.delayTime || 4;
                 window.disposalMethod = gce.disposalMethod;
                 // We don't have much to do with the rest of GCE.
             },
@@ -83,6 +103,8 @@ function handleFileSelect(evt) {
                     }
                 });
 
+                updateProgress(window.gifstream.pos);
+
                 // If I'm understanding this right, put the image onto the canvas, then re-fetch the whole thing
                 // to get the whole image without compression
                 frame.putImageData(cData, img.leftPos, img.topPos);
@@ -92,34 +114,40 @@ function handleFileSelect(evt) {
             eof: function(block) {
                 var gif = new GIF({
                   workers: 8, // Todo: figure out the best numbers here
-                  quality: 10,
+                  quality: 5,
                   workerScript: "assets/js/gif_js/gif.worker.js"
                 });
+
+                updateProgressMax(window.frames.length);
+                updateProgress((window.frames.length / 2) + 1);
 
                 for (var i = window.frames.length-1; i >= 0; i--) {
                     gif.addFrame(window.frames[i], {delay: window.delay});
                 }
 
+                gif.on('progress', function(pct) {
+                    updateProgress(parseInt(window.frames.length/2, 10) + parseInt((window.frames.length/2) * pct, 10));
+                });
+
                 gif.on('finished', function(blob) {
                     $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
-                    document.querySelector('.gif-drop-icon').style.display = 'none';
-                    document.querySelector('.gif-drop-text').style.display = 'none';
+                    $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
                 });
                 gif.render();
             }
         };
 
-        var st = new Stream(e.target.result);
+        window.gifstream = new Stream(e.target.result);
+        var st = window.gifstream;
 
         try {
-            parseGIF(st, handler);
+            parseGIF(window.gifstream, handler);
         } catch(err) {
             showError("Couldn't read this file. Is it an animated gif?");
         }
     };
 
     reader.readAsBinaryString(file);
-    return;
 }
 
 function handleDragOver(evt) {

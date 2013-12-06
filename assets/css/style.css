@@ -58,6 +58,11 @@ a:hover {
     margin: 0 auto;
 }
 
+#convert-progress {
+    display: none;
+    margin: 5px auto;
+}
+
 .gif-drop-text {
     font-weight: bold;
 }

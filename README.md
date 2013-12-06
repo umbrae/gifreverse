@@ -8,4 +8,4 @@ Uses:
 * jsgif for decoding: https://github.com/shachaf/jsgif
 * gif.js for encoding: https://github.com/jnordberg/gif.js
 
-Requires web workers, and html5 file API support. Should work in Latest FF, Safari, Chrome and IE10+.
+Requires web workers and html5 file API support. Should work in Latest FF, Safari, Chrome and IE10+.
