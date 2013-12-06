@@ -1,0 +1,92 @@
+body {
+    color: #53424C;
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 0;
+}
+
+h2 {
+    font-size: 1em;
+    margin-top: 0;
+    text-align: center;
+}
+
+footer {
+    text-align: center;
+    font-size: 0.8em;
+    margin-top: 2em;
+}
+
+a {
+    color: #3366CC;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+#source-gif {
+    display: none;
+}
+
+
+.gif-drop {
+    margin: 3em auto;
+    text-align: center;
+    padding: 12px;
+    max-width: 90%;
+    min-height: 120px;
+    max-height: 80%;
+    width: 400px;
+    border: 8px solid #C77B7D;
+    background-color: #E8DBB1;
+}
+
+.gif-drop-icon {
+    display: block;
+    font-size: 4em;
+    opacity: 0.4;
+}
+
+.gif.finished {
+    display: block;
+    margin: 0 auto;
+}
+
+.gif-drop-text {
+    font-weight: bold;
+}
+
+.gif-drop-icon.spin {
+    -webkit-animation-name: spin;
+    -webkit-animation-duration: 1000ms;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-timing-function: linear;
+    -moz-animation-name: spin;
+    -moz-animation-duration: 1000ms;
+    -moz-animation-iteration-count: infinite;
+    -moz-animation-timing-function: linear;
+    -ms-animation-name: spin;
+    -ms-animation-duration: 1000ms;
+    -ms-animation-iteration-count: infinite;
+    -ms-animation-timing-function: linear;
+    -o-transition: rotate(3600deg);    
+}
+
+@-moz-keyframes spin {
+    from { -moz-transform: rotate(0deg); }
+    to { -moz-transform: rotate(360deg); }
+}
+@-webkit-keyframes spin {
+    from { -webkit-transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); }
+}
+@keyframes spin {
+    from {transform:rotate(0deg);}
+    to {transform:rotate(360deg);}
+}

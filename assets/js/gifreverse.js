@@ -1,55 +1,65 @@
+
+// TODO: Figure out real requirements and test for 'em
 if (window.File && window.FileReader && window.FileList && window.Blob) {
     // Great success! All the File APIs are supported.
 } else {
     alert('The File APIs are not fully supported in this browser.');
 }
 
+// TODO: This is complete garbage. Clean it up.
 window.frames = [];
 window.tmpCanvas = document.createElement('canvas');
 window.sampleImg = document.getElementById('sampleImg');
 window.transparency = null;
 window.gif_header = null;
+window.disposalMethod = null;
+window.delay = null;
+
+function showError(msg) {
+    $('.gif-drop-icon').removeClass('spin');
+    $('.gif-drop-text').html($('.gif-drop-text').data('orig-html'));
+
+    alert(msg);
+}
 
 function handleFileSelect(evt) {
-    var file = evt.target.files[0],
+    var file =  evt.originalEvent.dataTransfer ? evt.originalEvent.dataTransfer.files[0] : evt.target.files[0];
         reader = new FileReader();
 
-    if (!file) {
-        return;
-    }
+    evt.stopPropagation();
+    evt.preventDefault();
+
+    $('.gif-drop-icon').addClass('spin');
+    $('.gif-drop-text').data('orig-html', $('.gif-drop-text').html());
+    $('.gif-drop-text').text('Backwardsing...');
 
     reader.onload = function(e) {
-        console.log(e);
-        console.log(e.target);
-        window.e = e;
 
         var handler = {
+
+            /**
+             * Deal with the header of the gif. Particularly, set our processing canvas width and height.
+             *
+            **/
             hdr: function(hdr) {
-                // canvas.width = hdr.width;
-                // canvas.height = hdr.height;
-                // div.style.width = hdr.width + 'px';
-                //div.style.height = hdr.height + 'px';
-                // toolbar.style.minWidth = hdr.width + 'px';
                 tmpCanvas.width = hdr.width;
                 tmpCanvas.height = hdr.height;
-                //if (hdr.gctFlag) { // Fill background.
-                //  rgb = hdr.gct[hdr.bgColor];
-                //  tmpCanvas.fillStyle = 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',');
-                //}
-                //tmpCanvas.getContext('2d').fillRect(0, 0, hdr.width, hdr.height);
-                // TODO: Figure out the disposal method business.
 
+                // Todo: Get rid of this mess.
                 window.gif_header = hdr;
             },
             gce: function(gce) {
-                transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
-                delay = gce.delayTime;
-                disposalMethod = gce.disposalMethod;
+                window.transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
+                window.delay = gce.delayTime || 2;
+                window.disposalMethod = gce.disposalMethod;
                 // We don't have much to do with the rest of GCE.
             },
             img: function(img) {
                 var frame = tmpCanvas.getContext('2d');
                 var cData = frame.getImageData(img.leftPos, img.topPos, img.width, img.height);
+
+                console.log(cData);
+
                 var ct = img.lctFlag ? img.lct : gif_header.gct; // TODO: What if neither exists?
 
                 img.pixels.forEach(function(pixel, i) {
@@ -62,7 +72,7 @@ function handleFileSelect(evt) {
                     } else {
                         // TODO: Handle disposal method properly.
                         // XXX: When I get to an Internet connection, check which disposal method is which.
-                        if (lastDisposalMethod === 2 || lastDisposalMethod === 3) {
+                        if (window.disposalMethod === 2 || window.disposalMethod === 3) {
                             cData.data[i * 4 + 3] = 0; // Transparent.
                             // XXX: This is very very wrong.
                         } else {
@@ -79,32 +89,23 @@ function handleFileSelect(evt) {
                 // to get the whole image without compression
                 frame.putImageData(cData, img.leftPos, img.topPos);
                 var frameData = frame.getImageData(0,0,tmpCanvas.width,tmpCanvas.height);
-
-//                sampleImg.src = tmpCanvas.toDataURL("image/gif");
-
                 window.frames.push(frameData);
-
-                // We could use the on-page canvas directly, except that we draw a progress
-                // bar for each image chunk (not just the final image).
-//                ctx.putImageData(cData, img.leftPos, img.topPos);
-//                console.log(img);
-//                window.frames.push(img);
             },
             eof: function(block) {
-                window.block = block;
-                console.log(block);
-
                 var gif = new GIF({
-                  workers: 2,
-                  quality: 10
+                  workers: 8, // Todo: figure out the best numbers here
+                  quality: 10,
+                  workerScript: "assets/js/gif_js/gif.worker.js"
                 });
 
-                for(var i=window.frames.length-1; i >= 0; i--) {
-                    gif.addFrame(window.frames[i], {delay: 10});
+                for (var i = window.frames.length-1; i >= 0; i--) {
+                    gif.addFrame(window.frames[i], {delay: window.delay});
                 }
 
                 gif.on('finished', function(blob) {
-                  window.open(URL.createObjectURL(blob));
+                    $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
+                    document.querySelector('.gif-drop-icon').style.display = 'none';
+                    document.querySelector('.gif-drop-text').style.display = 'none';
                 });
                 gif.render();
 
@@ -113,17 +114,30 @@ function handleFileSelect(evt) {
         };
 
         var st = new Stream(e.target.result);
-        console.log(st);
 
-        parseGIF(st, handler);
+        try {
+            parseGIF(st, handler);
+        } catch(err) {
+            showError("Couldn't read this file. Is it an animated gif?");
+        }
     };
 
-    console.log(file);
-    window.f = file;
-
     reader.readAsBinaryString(file);
-
-
+    return;
 }
 
-document.getElementById('source_gif').addEventListener('change', handleFileSelect, false);
+function handleDragOver(evt) {
+    evt.stopPropagation();
+    evt.preventDefault();
+    evt.originalEvent.dataTransfer.dropEffect = 'copy'; // show the right icon
+}
+
+$('.gif-drop')
+    .on('dragover', handleDragOver)
+    .on('drop', handleFileSelect);
+
+$("#source-chooser").on('click', function () {
+    $("#source-gif").trigger('click');
+});
+
+$('#source-gif').change(handleFileSelect);

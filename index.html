@@ -4,30 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="description" content="The fastest and easiest damned GIF reverser on the internet." />
     <title>GifReverse - The fastest and easiest damned GIF reverser on the internet.</title>
+    <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
-    <header>
+    <header role="banner">
         <h1>GifReverse</h1>
         <h2>The fastest and easiest damned GIF reverser on the internet.</h2>
     </header>
 
-    <!-- Gimme your gif (paste or drag/drop) -->
-    <!-- Convert -->
-    <!-- Send to Imgur/Minus -->    
+    <div class="gif-drop">
+        <span class="gif-drop-icon">☆</span>
+        <span class="gif-drop-text">Drag ‘n’ Drop your GIF Here. Or <button id="source-chooser">choose</button>.</span>
+        <img class="gif" />
+        <input type="file" id="source-gif" accept="image/gif" />
+    </div>
 
-    <form>
-        <input type="file" id="source_gif" accept="image/gif" name="source_gif" />
-        <output id="list"></output>
-        <img id="sampleImg" />
-    </form>
-    <!-- gif.js, the encoder -->
-    <script type="text/javascript" src="assets/js/gif_js/gif.worker.js"></script>
-    <script type="text/javascript" src="assets/js/gif_js/gif.js"></script>
+    <footer role="contentinfo">
+        <p>
+        No uploading, no watermarks, no bullshit. A hack by <a href="http://www.twitter.com/chrisdary" rel="me">@chrisdary</a>.
+        </p>
+        <p>
+        Greets: <a href="https://github.com/jnordberg/gif.js">jnordberg for gif.js</a>, <a href="https://github.com/shachaf/jsgif">shachaf for jsgif</a>
+        </p>
+    </footer>
 
-    <!-- jsgif, the decoder -->
-    <script type="text/javascript" src="assets/js/gif.js"></script>
-
-    <!-- Our own crud -->
+    <script type="text/javascript" src="assets/js/jquery.js"></script>
+    <script type="text/javascript" src="assets/js/gif_js/gif.js"></script>    <!-- gif.js, the encoder -->
+    <script type="text/javascript" src="assets/js/gif.js"></script>    <!-- jsgif, the decoder -->
     <script type="text/javascript" src="assets/js/gifreverse.js"></script>
 </body>
 </html>
