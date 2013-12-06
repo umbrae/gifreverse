@@ -1,0 +1,33 @@
+<!doctype html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="The fastest and easiest damned GIF reverser on the internet." />
+    <title>GifReverse - The fastest and easiest damned GIF reverser on the internet.</title>
+</head>
+<body>
+    <header>
+        <h1>GifReverse</h1>
+        <h2>The fastest and easiest damned GIF reverser on the internet.</h2>
+    </header>
+
+    <!-- Gimme your gif (paste or drag/drop) -->
+    <!-- Convert -->
+    <!-- Send to Imgur/Minus -->    
+
+    <form>
+        <input type="file" id="source_gif" accept="image/gif" name="source_gif" />
+        <output id="list"></output>
+        <img id="sampleImg" />
+    </form>
+    <!-- gif.js, the encoder -->
+    <script type="text/javascript" src="assets/js/gif_js/gif.worker.js"></script>
+    <script type="text/javascript" src="assets/js/gif_js/gif.js"></script>
+
+    <!-- jsgif, the decoder -->
+    <script type="text/javascript" src="assets/js/gif.js"></script>
+
+    <!-- Our own crud -->
+    <script type="text/javascript" src="assets/js/gifreverse.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+assets/js/gif_js/gif.worker.js
