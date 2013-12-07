@@ -1,167 +1,206 @@
-// TODO: This entire file is complete prototyping garbage. Clean it up.
+(function() {
+    var frames = [],
+        tmpCanvas = document.createElement('canvas'),
+        frameDelay = null,
+        gifStream = null,
+        headerProps = {
+            "transparency": null,
+            "globalColorTable": null,
+            "disposalMethod": null,
+        };
 
-// TODO: Figure out real requirements and test for 'em
-if (window.File && window.FileReader && window.FileList && window.Blob) {
-    // Great success! All the File APIs are supported.
-} else {
-    alert('The File APIs are not fully supported in this browser.');
-}
+    /**
+     * Display an error, and revert back to default state.
+    **/
+    function showError(msg) {
+        $('.gif-drop-icon').removeClass('spin');
+        $('.gif-drop-text').html($('.gif-drop-text').data('orig-html'));
 
-// Todo ugh, close all of this.
-window.frames = [];
-window.tmpCanvas = document.createElement('canvas');
-window.sampleImg = document.getElementById('sampleImg');
-window.transparency = null;
-window.gif_header = null;
-window.disposalMethod = null;
-window.delay = null;
-window.gifstream = null;
-
-function showError(msg) {
-    $('.gif-drop-icon').removeClass('spin');
-    $('.gif-drop-text').html($('.gif-drop-text').data('orig-html'));
-
-    // Todo proper error msg
-    alert(msg);
-}
-
-function updateProgressMax(v) {
-    $('#convert-progress').attr('max', v);
-}
-
-function updateProgress(v) {
-    $('#convert-progress').css('display', 'block').val(v);
-}
-
-function handleFileSelect(evt) {
-    var file;
-        reader = new FileReader();
-
-    if (evt.originalEvent.dataTransfer) {
-        /* Drag/drop */
-        file = evt.originalEvent.dataTransfer.files[0];
-    } else {
-        /* File input */
-        file = evt.target.files[0];
+        // Todo proper error msg
+        alert(msg);
     }
 
-    evt.stopPropagation();
-    evt.preventDefault();
+    /**
+     * Update our progress bar. If max is specified, update the max.
+    **/
+    function progress(v, max) {
+        var $prog = $('#convert-progress');
 
-    $('.gif-drop-icon').addClass('spin');
-    $('.gif-drop-text').data('orig-html', $('.gif-drop-text').html());
-    $('.gif-drop-text').text('Backwardsing...');
+        $prog.css('display', 'block');
+        $prog.val(v);
 
-    reader.onload = function(e) {
+        if (max) {
+            $prog.attr('max', max);
+        }
+    }
 
-        /** Note: A lot of this is pulled wholesale from jsgif's demo bookmarklet. **/
-        var handler = {
-            /**
-             * Deal with the header of the gif. Particularly, set our processing canvas width and height.
-            **/
-            hdr: function(hdr) {
-                tmpCanvas.width = hdr.width;
-                tmpCanvas.height = hdr.height;
+    function loading() {
+        $('.gif-drop-icon').addClass('spin');
+        $('.gif-drop-text').data('orig-html', $('.gif-drop-text').html())
+                           .text('Backwardsing...');
+    }
 
-                // Todo: Get rid of this mess.
-                window.gif_header = hdr;
+    /**
+     * Parse the header of the GIF, set variables we'll need later.
+    **/
+    function parseHeader(hdr) {
+        tmpCanvas.width  = hdr.width;
+        tmpCanvas.height = hdr.height;
+        headerProps.globalColorTable = hdr.gct;
 
-                // Only go to 50% for decoding
-                updateProgressMax(window.gifstream.data.length * 2);
-            },
-            gce: function(gce) {
-                window.transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
-                window.delay = gce.delayTime || 4;
-                window.disposalMethod = gce.disposalMethod;
-                // We don't have much to do with the rest of GCE.
-            },
-            img: function(img) {
-                var frame = tmpCanvas.getContext('2d');
-                var cData = frame.getImageData(img.leftPos, img.topPos, img.width, img.height);
-                var ct = img.lctFlag ? img.lct : gif_header.gct; // TODO: What if neither exists?
+        /* Set length as double so that we'll only ever get to 50%. The other 50% is for encoding. */
+        progress(0, gifStream.data.length * 2);
+    }
 
-                img.pixels.forEach(function(pixel, i) {
-                    // cData.data === [R,G,B,A,...]
-                    if (transparency !== pixel) { // This includes null, if no transparency was defined.
-                        cData.data[i * 4 + 0] = ct[pixel][0];
-                        cData.data[i * 4 + 1] = ct[pixel][1];
-                        cData.data[i * 4 + 2] = ct[pixel][2];
-                        cData.data[i * 4 + 3] = 255; // Opaque.
-                    } else {
-                        // TODO: Handle disposal method properly.
-                        // XXX: When I get to an Internet connection, check which disposal method is which.
-                        if (window.disposalMethod === 2 || window.disposalMethod === 3) {
-                            cData.data[i * 4 + 3] = 0; // Transparent.
-                            // XXX: This is very very wrong.
-                        } else {
-                            // lastDisposalMethod should be null (no GCE), 0, or 1; leave the pixel as it is.
-                            // assert(lastDispsalMethod === null || lastDispsalMethod === 0 || lastDispsalMethod === 1);
-                            // XXX: If this is the first frame (and we *do* have a GCE),
-                            // lastDispsalMethod will be null, but we want to set undefined
-                            // pixels to the background color.
-                        }
-                    }
-                });
+    /**
+     * Parse the Graphics Control Extension section of the GIF. Holds essentially more header info.
+    **/
+    function parseGCE(gce) {
+        frameDelay                 = gce.delayTime || 4;
+        headerProps.transparency   = gce.transparencyGiven ? gce.transparencyIndex : null;
+        headerProps.disposalMethod = gce.disposalMethod;
+    }
 
-                updateProgress(window.gifstream.pos);
+    /**
+     * Parse a single frame of the gif, map it to the color table we've been provided and push it onto our
+     * calculated frames.
+    **/
+    function parseImg(img) {
+        var frame = tmpCanvas.getContext('2d'),
+            cData = frame.getImageData(img.leftPos, img.topPos, img.width, img.height),
+            ct    = img.lctFlag ? img.lct : headerProps.globalColorTable;
 
-                // If I'm understanding this right, put the image onto the canvas, then re-fetch the whole thing
-                // to get the whole image without compression
-                frame.putImageData(cData, img.leftPos, img.topPos);
-                var frameData = frame.getImageData(0,0,tmpCanvas.width,tmpCanvas.height);
-                window.frames.push(frameData);
-            },
-            eof: function(block) {
-                var gif = new GIF({
-                  workers: 8, // Todo: figure out the best numbers here
-                  quality: 5,
-                  workerScript: "assets/js/gif_js/gif.worker.js"
-                });
+        /* Go through each pixel and map it to the color table we're using for this frame. */
+        img.pixels.forEach(function(pixel, i) {
+            // cData.data === [R,G,B,A,...]
+            // This includes null, if no transparency was defined.
+            if (headerProps.transparency !== pixel) {
+                cData.data[i * 4 + 0] = ct[pixel][0];
+                cData.data[i * 4 + 1] = ct[pixel][1];
+                cData.data[i * 4 + 2] = ct[pixel][2];
+                cData.data[i * 4 + 3] = 255; // Opaque.
+            } else if (window.disposalMethod === 2 || window.disposalMethod === 3) {
+                cData.data[i * 4 + 3] = 0; // Transparent.
+            }
+            // Otherwise, the disposal method Do Not Dispose, which means the pixel is left in place.
+        });
 
-                updateProgressMax(window.frames.length);
-                updateProgress((window.frames.length / 2) + 1);
+        progress(gifStream.pos);
 
-                for (var i = window.frames.length-1; i >= 0; i--) {
-                    gif.addFrame(window.frames[i], {delay: window.delay});
-                }
+        // Put the image onto the canvas, then re-fetch the whole thing
+        // to get the whole image without compression
+        // TODO: We may be able to skip this and just use cData?
+        frame.putImageData(cData, img.leftPos, img.topPos);
+        frames.push(frame.getImageData(0,0,tmpCanvas.width,tmpCanvas.height));
+    }
 
-                gif.on('progress', function(pct) {
-                    updateProgress(parseInt(window.frames.length/2, 10) + parseInt((window.frames.length/2) * pct, 10));
-                });
+    /**
+     * Parse the end of the decoded GIF. Fire off the encoding process.
+    **/
+    function parseEOF(block) {
+        // Nothing to do with end block just yet.
+        encodeGIF();
+    }
 
-                gif.on('finished', function(blob) {
-                    $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
-                    $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
-                });
-                gif.render();
+    /**
+     * Encode the frames into our reversed gif.
+    **/
+    function encodeGIF() {
+        var gif = new GIF({
+          workers: 8, // Todo: figure out the best numbers here
+          quality: 5,
+          workerScript: "assets/js/gif_js/gif.worker.js"
+        });
+
+        /* Reset progress size to number of frames to encode, starting at 50% done. */
+        progress((frames.length / 2) + 1, frames.length);
+
+        /* Run through our frames in reverse, adding 'em. */
+        var params = {"delay": frameDelay};
+        for (var i = frames.length-1; i >= 0; i--) {
+            gif.addFrame(frames[i], params);
+        }
+
+        var halfDone = parseInt(frames.length/2, 10);
+        gif.on('progress', function(pct) {
+            progress(halfDone + (halfDone * pct));
+        });
+
+        gif.on('finished', function(blob) {
+            $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
+            $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
+        });
+
+        gif.render();
+    }
+
+    /**
+     * When someone drags a file over our dropzone, change the icon properly.
+    **/
+    function handleDragOver(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        e.originalEvent.dataTransfer.dropEffect = 'copy'; // show the right icon
+    }
+
+    /**
+     * Start converting an image provided from either drag/drop or file input events.
+    **/
+    function handleSelect(e) {
+        var file,
+            reader = new FileReader();
+
+        e.stopPropagation();
+        e.preventDefault();
+
+        loading();
+
+        reader.onload = function(e) {
+            var handlers = {
+                "hdr": parseHeader,
+                "gce": parseGCE,
+                "img": parseImg,
+                "eof": parseEOF
+            };
+
+            gifStream = new Stream(e.target.result);
+
+            try {
+                parseGIF(gifStream, handlers);
+            } catch(error) {
+                showError("Couldn't read this file. Is it an animated gif?");
             }
         };
 
-        window.gifstream = new Stream(e.target.result);
-        var st = window.gifstream;
-
-        try {
-            parseGIF(window.gifstream, handler);
-        } catch(err) {
-            showError("Couldn't read this file. Is it an animated gif?");
+        if (e.originalEvent.dataTransfer) {
+            /* Drag/drop */
+            file = e.originalEvent.dataTransfer.files[0];
+        } else {
+            /* File input */
+            file = e.target.files[0];
         }
-    };
 
-    reader.readAsBinaryString(file);
-}
+        reader.readAsBinaryString(file);
+    }
 
-function handleDragOver(evt) {
-    evt.stopPropagation();
-    evt.preventDefault();
-    evt.originalEvent.dataTransfer.dropEffect = 'copy'; // show the right icon
-}
+    /**
+     * Do... the things.
+    **/
+    function init() {
+        if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
+            showError('Sorry, it looks like your browser doesn\'t support the capabilities needed to use GIF Reverse.');
+        }
 
-$('.gif-drop')
-    .on('dragover', handleDragOver)
-    .on('drop', handleFileSelect);
+        $('.gif-drop')
+            .on('dragover', handleDragOver)
+            .on('drop', handleSelect);
 
-$("#source-chooser").on('click', function () {
-    $("#source-gif").trigger('click');
-});
+        $("#source-chooser").on('click', function () {
+            $("#source-gif").trigger('click');
+        });
 
-$('#source-gif').change(handleFileSelect);
+        $('#source-gif').change(handleSelect);
+    }
+
+    $(document).ready(init);
+}());

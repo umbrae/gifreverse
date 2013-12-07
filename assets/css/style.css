@@ -3,6 +3,10 @@ body {
     font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial;
 }
 
+.accessiblespace {
+    display: none;
+}
+
 h1 {
     text-align: center;
     margin-bottom: 0;
