@@ -3,6 +3,7 @@
 **/
 (function() {
     var frames = [],
+        frameDelays = [],
         tmpCanvas = document.createElement('canvas'),
         frameDelay = null,
         gifStream = null,
@@ -70,6 +71,8 @@
         if (frameDelay < 20) {
             frameDelay = 20;
         }
+
+        frameDelays.push(frameDelay);
 
         transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
         lastDisposalMethod = disposalMethod;
@@ -141,9 +144,8 @@
         progress((frames.length / 2) + 1, frames.length);
 
         /* Run through our frames in reverse, adding 'em. */
-        var params = {"delay": frameDelay};
         for (var i = frames.length-1; i >= 0; i--) {
-            gif.addFrame(frames[i], params);
+            gif.addFrame(frames[i], {"delay": frameDelays[i]});
         }
 
         var halfDone = parseInt(frames.length/2, 10);
