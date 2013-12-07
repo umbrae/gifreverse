@@ -18,9 +18,19 @@
         };
 
     /**
+     * Send to google analytics if we have it loaded.
+    **/
+    function trackEvent(category, action) {
+        if (ga) {
+            ga('send', 'event', category, action);
+        }
+    }
+
+    /**
      * Display an error, and revert back to default state.
     **/
     function showError(msg) {
+        trackEvent('convert', 'error');
         $('.gif-drop-icon').removeClass('spin');
         $('.gif-drop-text').html($('.gif-drop-text').data('orig-html'));
 
@@ -43,6 +53,7 @@
     }
 
     function loading() {
+        trackEvent('convert', 'start');
         $('.gif-drop-icon').addClass('spin');
         $('.gif-drop-text').data('orig-html', $('.gif-drop-text').html())
                            .text('Backwardsing...');
@@ -158,6 +169,7 @@
             $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
             $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
             $('#send-to-imgur').css('visibility', 'visible');
+            trackEvent('convert', 'finish');
         });
 
         gif.render();
@@ -181,11 +193,21 @@
                 "type": "base64"
               },
               success: function(result) {
+                trackEvent('sendtoimgur', 'finish');
                 var id = result.data.id;
                 window.location = 'https://imgur.com/gallery/' + id;
               }
             });
         };
+
+        if ($('#send-to-imgur').is('.sending')) {
+            return false;
+        }
+
+        $('#send-to-imgur').addClass('sending');
+        $('.send-status').text('Sending');
+
+        trackEvent('sendtoimgur', 'start');
         b64reader.readAsDataURL(gifBlob);
     }
 

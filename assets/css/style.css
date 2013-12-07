@@ -8,30 +8,6 @@ body {
     display: none;
 }
 
-#send-to-imgur {
-    border: 3px solid #444442;
-    background-color: white;
-    height: 40px;
-    cursor: pointer;
-    width: 225px;
-    font-size: 20px;
-    line-height: 28px;
-    display: block;
-    visibility: hidden;
-    margin: 0 auto;
-    border-radius: 5px;
-}
-
-.imgur-logo {
-    width: 60px;
-    height: 40px;
-    background-image: url(../images/imgur_logo.svg);
-    text-indent: -9999px;
-    display: inline-block;
-    background-size: 60px;
-    background-repeat: no-repeat;
-    background-position: 0 5px;
-}
 
 h1 {
     text-align: center;
@@ -69,19 +45,22 @@ a:hover {
     margin: 3em auto;
     text-align: center;
     padding: 12px;
-    min-height: 120px;
+    min-height: 160px;
     max-height: 80%;
     display: inline-block;
     min-width: 400px;
     width: auto;
-    border: 8px solid #C77B7D;
-    background-color: #E8DBB1;
+    border: 3px dashed rgba(199,125,135,0.7);
+    background-color: #F6F3DD;
+    border-radius: 16px;
 }
 
 .gif-drop-icon {
     display: block;
     font-size: 4em;
     opacity: 0.4;
+    line-height: 1.4;
+    padding: 10px 0;
 }
 
 .gif-drop.drag .gif-drop-icon {
@@ -102,19 +81,48 @@ a:hover {
     font-weight: bold;
 }
 
+#send-to-imgur {
+    border: 3px solid #444442;
+    background-color: white;
+    height: 40px;
+    cursor: pointer;
+    width: 225px;
+    font-size: 20px;
+    line-height: 28px;
+    display: block;
+    visibility: hidden;
+    margin: 0 auto;
+    border-radius: 5px;
+}
+
+#send-to-imgur .send-arrow {
+    position: relative;
+    display: inline-block;
+}
+
+#send-to-imgur.sending .send-arrow {
+    -webkit-animation: bounce 1s ease infinite;
+    -moz-animation: bounce 1s ease infinite;
+    -ms-animation: bounce 1s ease infinite;
+    animation: bounce 1s ease infinite;
+}
+
+.imgur-logo {
+    width: 60px;
+    height: 40px;
+    background-image: url(../images/imgur_logo.svg);
+    text-indent: -9999px;
+    display: inline-block;
+    background-size: 60px;
+    background-repeat: no-repeat;
+    background-position: 0 5px;
+}
+
+
 .gif-drop-icon.spin {
-    -webkit-animation-name: spin;
-    -webkit-animation-duration: 1000ms;
-    -webkit-animation-iteration-count: infinite;
-    -webkit-animation-timing-function: linear;
-    -moz-animation-name: spin;
-    -moz-animation-duration: 1000ms;
-    -moz-animation-iteration-count: infinite;
-    -moz-animation-timing-function: linear;
-    -ms-animation-name: spin;
-    -ms-animation-duration: 1000ms;
-    -ms-animation-iteration-count: infinite;
-    -ms-animation-timing-function: linear;
+    -webkit-animation: spin 1s infinite linear;
+    -moz-animation: spin 1s infinite linear;
+    -ms-animation: spin 1s infinite linear;
     -o-transition: rotate(3600deg);    
 }
 
@@ -129,4 +137,15 @@ a:hover {
 @keyframes spin {
     from {transform:rotate(0deg);}
     to {transform:rotate(360deg);}
+}
+
+@-moz-keyframes bounce {
+    50% { -moz-transform: translate(5px, 0px); }
+}
+@-webkit-keyframes bounce {
+    50% { -webkit-transform: translate(5px, 0px); }
+}
+
+@keyframes bounce {
+    50% { transform: translate(5px, 0px); }
 }
