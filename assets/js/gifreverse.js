@@ -1,12 +1,17 @@
+/**
+ * !GIF Reverse : Reverse GIF!
+**/
 (function() {
     var frames = [],
         tmpCanvas = document.createElement('canvas'),
         frameDelay = null,
         gifStream = null,
+        lastDisposalMethod = null,
+        disposalMethod = null,
+        transparency = null,
         headerProps = {
-            "transparency": null,
             "globalColorTable": null,
-            "disposalMethod": null,
+            "bgColor": null
         };
 
     /**
@@ -47,23 +52,31 @@
         tmpCanvas.width  = hdr.width;
         tmpCanvas.height = hdr.height;
         headerProps.globalColorTable = hdr.gct;
+        headerProps.bgColor = hdr.bgColor;
 
         /* Set length as double so that we'll only ever get to 50%. The other 50% is for encoding. */
         progress(0, gifStream.data.length * 2);
     }
 
     /**
-     * Parse the Graphics Control Extension section of the GIF. Holds essentially more header info.
+     * Parse the Graphics Control Extension section of the GIF. Holds essentially metadata per frame.
     **/
     function parseGCE(gce) {
-        frameDelay                 = gce.delayTime || 4;
-        headerProps.transparency   = gce.transparencyGiven ? gce.transparencyIndex : null;
-        headerProps.disposalMethod = gce.disposalMethod;
+        frameDelay = (gce.delayTime * 10) || 20; // jsgif uses centiseconds, gif.js milliseconds
+
+        /* anything < 20ms gets clobbered by most browsers */
+        if (frameDelay < 20) {
+            frameDelay = 20;
+        }
+
+        transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
+        lastDisposalMethod = disposalMethod;
+        disposalMethod = gce.disposalMethod || 2; // If it's 0, it's almost always meant to be 2.
     }
 
     /**
      * Parse a single frame of the gif, map it to the color table we've been provided and push it onto our
-     * calculated frames.
+     * calculated frames. Much of this is syntactically similar to jsgif's bookmarklet demo.
     **/
     function parseImg(img) {
         var frame = tmpCanvas.getContext('2d'),
@@ -74,13 +87,24 @@
         img.pixels.forEach(function(pixel, i) {
             // cData.data === [R,G,B,A,...]
             // This includes null, if no transparency was defined.
-            if (headerProps.transparency !== pixel) {
+            if (transparency !== pixel) {
                 cData.data[i * 4 + 0] = ct[pixel][0];
                 cData.data[i * 4 + 1] = ct[pixel][1];
                 cData.data[i * 4 + 2] = ct[pixel][2];
                 cData.data[i * 4 + 3] = 255; // Opaque.
-            } else if (window.disposalMethod === 2 || window.disposalMethod === 3) {
-                cData.data[i * 4 + 3] = 0; // Transparent.
+            } else if (lastDisposalMethod === 2 || lastDisposalMethod === 3) {
+                // TODO: Transparency isn't working properly. Best thing we can do is set the
+                // background color for now.
+                cData.data[i * 4 + 0] = headerProps.globalColorTable[headerProps.bgColor][0];
+                cData.data[i * 4 + 1] = headerProps.globalColorTable[headerProps.bgColor][1];
+                cData.data[i * 4 + 2] = headerProps.globalColorTable[headerProps.bgColor][2];
+                cData.data[i * 4 + 3] = 255; // Opaque, but it *should* be 0, transparent, when fixed.
+            } else if (lastDisposalMethod === null) {
+                // First frame probably, set background color.
+                cData.data[i * 4 + 0] = headerProps.globalColorTable[headerProps.bgColor][0];
+                cData.data[i * 4 + 1] = headerProps.globalColorTable[headerProps.bgColor][1];
+                cData.data[i * 4 + 2] = headerProps.globalColorTable[headerProps.bgColor][2];
+                cData.data[i * 4 + 3] = 255; // Opaque.                
             }
             // Otherwise, the disposal method Do Not Dispose, which means the pixel is left in place.
         });
@@ -88,8 +112,7 @@
         progress(gifStream.pos);
 
         // Put the image onto the canvas, then re-fetch the whole thing
-        // to get the whole image without compression
-        // TODO: We may be able to skip this and just use cData?
+        // to get the whole image from 0, 0.
         frame.putImageData(cData, img.leftPos, img.topPos);
         frames.push(frame.getImageData(0,0,tmpCanvas.width,tmpCanvas.height));
     }
