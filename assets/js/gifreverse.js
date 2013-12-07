@@ -6,9 +6,11 @@
         tmpCanvas = document.createElement('canvas'),
         frameDelay = null,
         gifStream = null,
+        gifBlob = null,
         lastDisposalMethod = null,
         disposalMethod = null,
         transparency = null,
+        imgurClientId = "26ac2752449813f", /* Public imgur API key */
         headerProps = {
             "globalColorTable": null,
             "bgColor": null
@@ -150,11 +152,39 @@
         });
 
         gif.on('finished', function(blob) {
+            gifBlob = blob;
             $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
             $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
+            $('#send-to-imgur').css('display', 'block');
         });
 
         gif.render();
+    }
+
+    function sendToImgur() {
+        var b64reader = new FileReader();
+        b64reader.onload = function(event) {
+            // Remove data URL bit, leave only b64 chewy goodness.
+            payload = event.target.result.substring(22);
+
+            $.ajax({
+              url: 'https://api.imgur.com/3/image',
+              method: 'POST',
+              headers: {
+                Authorization: 'Client-ID ' + imgurClientId,
+                Accept: 'application/json'
+              },
+              data: {
+                "image": payload,
+                "type": "base64"
+              },
+              success: function(result) {
+                var id = result.data.id;
+                window.location = 'https://imgur.com/gallery/' + id;
+              }
+            });
+        };
+        b64reader.readAsDataURL(gifBlob);
     }
 
     /**
@@ -163,6 +193,7 @@
     function handleDragOver(e) {
         e.stopPropagation();
         e.preventDefault();
+        $(this).addClass('drag');
         e.originalEvent.dataTransfer.dropEffect = 'copy'; // show the right icon
     }
 
@@ -216,6 +247,7 @@
 
         $('.gif-drop')
             .on('dragover', handleDragOver)
+            .on('dragleave', function() { $(this).removeClass('drag'); })
             .on('drop', handleSelect);
 
         $("#source-chooser").on('click', function () {
@@ -223,6 +255,8 @@
         });
 
         $('#source-gif').change(handleSelect);
+
+        $('#send-to-imgur').click(sendToImgur);
     }
 
     $(document).ready(init);

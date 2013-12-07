@@ -1,10 +1,35 @@
 body {
     color: #53424C;
     font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial;
+    text-align: center;
 }
 
 .accessiblespace {
     display: none;
+}
+
+#send-to-imgur {
+    border: 3px solid #444442;
+    background-color: white;
+    height: 40px;
+    cursor: pointer;
+    width: 225px;
+    font-size: 20px;
+    line-height: 28px;
+    display: none;
+    margin: 0 auto;
+    border-radius: 5px;
+}
+
+.imgur-logo {
+    width: 60px;
+    height: 40px;
+    background-image: url(../images/imgur_logo.svg);
+    text-indent: -9999px;
+    display: inline-block;
+    background-size: 60px;
+    background-repeat: no-repeat;
+    background-position: 0 5px;
 }
 
 h1 {
@@ -43,10 +68,11 @@ a:hover {
     margin: 3em auto;
     text-align: center;
     padding: 12px;
-    max-width: 90%;
     min-height: 120px;
     max-height: 80%;
-    width: 400px;
+    display: inline-block;
+    min-width: 400px;
+    width: auto;
     border: 8px solid #C77B7D;
     background-color: #E8DBB1;
 }
@@ -55,6 +81,10 @@ a:hover {
     display: block;
     font-size: 4em;
     opacity: 0.4;
+}
+
+.gif-drop.drag .gif-drop-icon {
+    opacity: 1;
 }
 
 .gif.finished {
@@ -92,8 +122,8 @@ a:hover {
     to { -moz-transform: rotate(360deg); }
 }
 @-webkit-keyframes spin {
-    from { -webkit-transform: rotate(0deg); }
-    to { -webkit-transform: rotate(360deg); }
+    from { -webkit-transform: rotate(360deg); }
+    to { -webkit-transform: rotate(0deg); }
 }
 @keyframes spin {
     from {transform:rotate(0deg);}
