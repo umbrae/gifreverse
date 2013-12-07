@@ -16,7 +16,8 @@ body {
     width: 225px;
     font-size: 20px;
     line-height: 28px;
-    display: none;
+    display: block;
+    visibility: hidden;
     margin: 0 auto;
     border-radius: 5px;
 }

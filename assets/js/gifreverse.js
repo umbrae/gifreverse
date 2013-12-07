@@ -155,7 +155,7 @@
             gifBlob = blob;
             $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
             $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
-            $('#send-to-imgur').css('display', 'block');
+            $('#send-to-imgur').css('visibility', 'visible');
         });
 
         gif.render();
