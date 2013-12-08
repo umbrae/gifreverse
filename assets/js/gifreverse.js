@@ -11,6 +11,7 @@
         lastDisposalMethod = null,
         disposalMethod = null,
         transparency = null,
+        timerStart = null,
         imgurClientId = "26ac2752449813f", /* Public imgur API key */
         headerProps = {
             "globalColorTable": null,
@@ -20,9 +21,9 @@
     /**
      * Send to google analytics if we have it loaded.
     **/
-    function trackEvent(category, action) {
+    function trackEvent(category, action, label, value) {
         if (ga) {
-            ga('send', 'event', category, action);
+            ga('send', 'event', category, action, label, value);
         }
     }
 
@@ -54,6 +55,7 @@
 
     function loading() {
         trackEvent('convert', 'start');
+        timerStart = (new Date().getTime());
         $('.gif-drop-icon').addClass('spin');
         $('.gif-drop-text').data('orig-html', $('.gif-drop-text').html())
                            .text('Backwardsing...');
@@ -169,7 +171,8 @@
             $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
             $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
             $('#send-to-imgur').css('visibility', 'visible');
-            trackEvent('convert', 'finish');
+            timing = (new Date().getTime()) - timerStart;
+            trackEvent('convert', 'finish', 'timing', timing);
         });
 
         gif.render();
