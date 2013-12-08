@@ -67,6 +67,10 @@ a:hover {
     opacity: 1;
 }
 
+.gif {
+    display: none;
+}
+
 .gif.finished {
     display: block;
     margin: 0 auto;
