@@ -287,6 +287,8 @@
             return false;
         }
 
+        trackEvent('uploadUrl', 'start');
+
         if (a.host === "imgur.com") {
             url = "http://i.imgur.com" + a.pathname + ".gif";
         } else if (a.host !== "i.imgur.com") {
@@ -305,6 +307,7 @@
             xhr.overrideMimeType( "text/plain; charset=x-user-defined" );
           },
           success: function(result, xhr) {
+            trackEvent('uploadUrl', 'finish');
             gifStream = new Stream(result);
             handleGifLoad(gifStream);
           },
