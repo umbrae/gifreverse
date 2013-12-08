@@ -53,12 +53,12 @@
         }
     }
 
-    function loading() {
-        trackEvent('convert', 'start');
-        timerStart = (new Date().getTime());
+    function loading(status) {
         $('.gif-drop-icon').addClass('spin');
-        $('.gif-drop-text').data('orig-html', $('.gif-drop-text').html())
-                           .text('Backwardsing...');
+        if (!$('.gif-drop.text').data('orig-html')) {
+            $('.gif-drop-text').data('orig-html', $('.gif-drop-text').html());
+        }
+        $('.gif-drop-text').text(status);
     }
 
     /**
@@ -199,6 +199,10 @@
                 trackEvent('sendtoimgur', 'finish');
                 var id = result.data.id;
                 window.location = 'https://imgur.com/gallery/' + id;
+              },
+              error: function(jqXHR, textStatus, errorThrown) {
+                trackEvent('sendtoimgur', 'error', errorThrown);
+                alert("Sorry, we had an error sending this to imgur. Maybe upload it yourself? :\\");
               }
             });
         };
@@ -224,6 +228,25 @@
         e.originalEvent.dataTransfer.dropEffect = 'copy'; // show the right icon
     }
 
+    function handleGifLoad(gifStream) {
+        var handlers = {
+            "hdr": parseHeader,
+            "gce": parseGCE,
+            "img": parseImg,
+            "eof": parseEOF
+        };
+
+        loading('Backwardsing...');
+        trackEvent('convert', 'start');
+        timerStart = (new Date().getTime());
+
+        try {
+            parseGIF(gifStream, handlers);
+        } catch(error) {
+            showError("Couldn't read this file. Is it an animated gif?");
+        }
+    }
+
     /**
      * Start converting an image provided from either drag/drop or file input events.
     **/
@@ -234,23 +257,10 @@
         e.stopPropagation();
         e.preventDefault();
 
-        loading();
-
         reader.onload = function(e) {
-            var handlers = {
-                "hdr": parseHeader,
-                "gce": parseGCE,
-                "img": parseImg,
-                "eof": parseEOF
-            };
-
+            window.result = e.target.result;
             gifStream = new Stream(e.target.result);
-
-            try {
-                parseGIF(gifStream, handlers);
-            } catch(error) {
-                showError("Couldn't read this file. Is it an animated gif?");
-            }
+            handleGifLoad(gifStream);
         };
 
         if (e.originalEvent.dataTransfer) {
@@ -262,6 +272,47 @@
         }
 
         reader.readAsBinaryString(file);
+    }
+
+    function sendNonImgurUrlToImgur(url) {
+
+    }
+
+    function handleUrlUpload(url) {
+        var a = document.createElement('a');
+        a.href = url;
+
+        // Not well-formed data, fail silently
+        if (!url || a.host === window.location.host) {
+            return false;
+        }
+
+        if (a.host === "imgur.com") {
+            url = "http://i.imgur.com" + a.pathname + ".gif";
+        } else if (a.host !== "i.imgur.com") {
+            trackEvent('uploadUrl', 'error', 'nonImgurUrl');
+            alert("Sorry, right now we only support imgur URLs.");
+            return false;
+        }
+
+        loading('Fetching...');
+
+        $.ajax({
+          url: url,
+          method: 'GET',
+          beforeSend: function( xhr ) {
+            // Override mimetype so that we get the raw bits back.
+            xhr.overrideMimeType( "text/plain; charset=x-user-defined" );
+          },
+          success: function(result, xhr) {
+            gifStream = new Stream(result);
+            handleGifLoad(gifStream);
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            trackEvent('uploadUrl', 'error', errorThrown);
+            alert("Sorry, we had an error fetching this image. Maybe download it and upload it yourself? :\\");
+          }
+        });
     }
 
     /**
@@ -281,7 +332,15 @@
             $("#source-gif").trigger('click');
         });
 
-        $('#source-gif').change(handleSelect);
+        $('#source-gif').on('change', handleSelect);
+        $('#source-url').on('click', function() {
+            var url = prompt("Enter URL:");
+            return handleUrlUpload(url);
+        });
+
+        $('body').on('paste', function(e) {
+            return handleUrlUpload(e.originalEvent.clipboardData.getData('text/plain'));
+        });
 
         $('#send-to-imgur').click(sendToImgur);
     }

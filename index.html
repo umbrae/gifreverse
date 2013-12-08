@@ -14,7 +14,13 @@
 
     <div class="gif-drop">
         <span class="gif-drop-icon">☆</span>
-        <span class="gif-drop-text">Drag ‘n’ Drop your GIF Here. Or <button id="source-chooser">choose</button>.</span>
+        <div class="gif-drop-text">
+            Drag ‘n’ Drop your GIF Here.
+            <br />
+            <small>or</small>
+            <br />
+            <button id="source-url">Enter a URL</button> &bull; <button id="source-chooser">Choose a File</button>
+        </div>
         <img src="#" alt="Reversed gif" class="gif" />
         <input type="file" id="source-gif" accept="image/gif" />
         <progress id="convert-progress"></progress>
