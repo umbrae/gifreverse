@@ -1,5 +1,6 @@
-# Improve decode process: maybe use webworkers? ArrayBuffers?
+# Improve decode process: maybe use webworkers? ArrayBuffers? https://github.com/dwyfl/gifplayer ? 
 # Proxy other URLs on the internet through imgur API
 # Disallow send to imgur if the gif > 2MB
 # Better spinner for send to imgur
 # Progress bar for send to imgur
+# Switch to Require?

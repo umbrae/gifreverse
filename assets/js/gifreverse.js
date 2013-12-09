@@ -31,7 +31,6 @@
      * Display an error, and revert back to default state.
     **/
     function showError(msg) {
-        trackEvent('convert', 'error');
         $('.gif-drop-icon').removeClass('spin');
         $('.gif-drop-text').html($('.gif-drop-text').data('orig-html'));
 
@@ -53,6 +52,7 @@
         }
     }
 
+    /** Yay Spinners **/
     function loading(status) {
         $('.gif-drop-icon').addClass('spin');
         if (!$('.gif-drop.text').data('orig-html')) {
@@ -132,7 +132,7 @@
         // Put the image onto the canvas, then re-fetch the whole thing
         // to get the whole image from 0, 0.
         frame.putImageData(cData, img.leftPos, img.topPos);
-        frames.push(frame.getImageData(0,0,tmpCanvas.width,tmpCanvas.height));
+        frames.push(frame.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height));
     }
 
     /**
@@ -148,9 +148,9 @@
     **/
     function encodeGIF() {
         var gif = new GIF({
-          workers: 8, // Todo: figure out the best numbers here
-          quality: 5,
-          workerScript: "assets/js/gif_js/gif.worker.js"
+            "workers": 8, // Todo: figure out the best numbers here
+            "quality": 5,
+            "workerScript": "assets/js/gif_js/gif.worker.js"
         });
 
         /* Reset progress size to number of frames to encode, starting at 50% done. */
@@ -171,18 +171,23 @@
             $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
             $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
             $('#send-to-imgur').css('visibility', 'visible');
-            timing = (new Date().getTime()) - timerStart;
+
+            var timing = (new Date().getTime()) - timerStart;
             trackEvent('convert', 'finish', 'timing', timing);
         });
 
         gif.render();
     }
 
+    /**
+     * Send our reversed GIF to Imgur, and navigate to it on imgur when we've finished.
+     * TODO: Check file size before sending. If > 2MB, we probably shouldn't show the button or should disable it.
+    **/
     function sendToImgur() {
         var b64reader = new FileReader();
         b64reader.onload = function(event) {
             // Remove data URL bit, leave only b64 chewy goodness.
-            payload = event.target.result.substring(22);
+            var payload = event.target.result.substring(22);
 
             $.ajax({
               url: 'https://api.imgur.com/3/image',
@@ -194,16 +199,14 @@
               data: {
                 "image": payload,
                 "type": "base64"
-              },
-              success: function(result) {
+              }
+            }).done(function(result) {
                 trackEvent('sendtoimgur', 'finish');
                 var id = result.data.id;
                 window.location = 'https://imgur.com/gallery/' + id;
-              },
-              error: function(jqXHR, textStatus, errorThrown) {
+            }).fail(function(jqXHR, textStatus, errorThrown) {
                 trackEvent('sendtoimgur', 'error', errorThrown);
-                alert("Sorry, we had an error sending this to imgur. Maybe upload it yourself? :\\");
-              }
+                showError("Sorry, we had an error sending this to imgur. Maybe upload it yourself? :\\");
             });
         };
 
@@ -228,6 +231,9 @@
         e.originalEvent.dataTransfer.dropEffect = 'copy'; // show the right icon
     }
 
+    /**
+     * Given a Stream object of a GIF's bytes, begin to decode it, passing in our handlers for each gif section.
+    **/
     function handleGifLoad(gifStream) {
         var handlers = {
             "hdr": parseHeader,
@@ -243,6 +249,7 @@
         try {
             parseGIF(gifStream, handlers);
         } catch(error) {
+            trackEvent('convert', 'error');
             showError("Couldn't read this file. Is it an animated gif?");
         }
     }
@@ -257,9 +264,11 @@
         e.stopPropagation();
         e.preventDefault();
 
+        $('.gif-drop').removeClass('drag');
+
         reader.onload = function(e) {
-            window.result = e.target.result;
             gifStream = new Stream(e.target.result);
+
             handleGifLoad(gifStream);
         };
 
@@ -271,13 +280,17 @@
             file = e.target.files[0];
         }
 
+        if (!file) {
+            return false;
+        }
+
         reader.readAsBinaryString(file);
     }
 
-    function sendNonImgurUrlToImgur(url) {
-
-    }
-
+    /**
+     * Given a URL, determine how to fetch it. If it's imgur already, we can use it directly. If not yet on imgur,
+     * we'll need to proxy it through imgur to avoid CORS issues.
+    **/
     function handleUrlUpload(url) {
         var a = document.createElement('a');
         a.href = url;
@@ -292,29 +305,62 @@
         if (a.host === "imgur.com") {
             url = "http://i.imgur.com" + a.pathname + ".gif";
         } else if (a.host !== "i.imgur.com") {
-            trackEvent('uploadUrl', 'error', 'nonImgurUrl');
-            alert("Sorry, right now we only support imgur URLs.");
-            return false;
+            proxyNonImgurUrl(url);
+        } else {
+            loading('Fetching...');
+            loadImgurUrl(url);
         }
+    }
 
-        loading('Fetching...');
-
+    /**
+     * Given an imgur URL, load a gif's bytes. Imgur is friendly to us because they allow CORS.
+    **/
+    function loadImgurUrl(url) {
         $.ajax({
-          url: url,
-          method: 'GET',
-          beforeSend: function( xhr ) {
-            // Override mimetype so that we get the raw bits back.
-            xhr.overrideMimeType( "text/plain; charset=x-user-defined" );
-          },
-          success: function(result, xhr) {
+            url: url,
+            method: 'GET',
+            beforeSend: function( xhr ) {
+              // Override mimetype so that we get the raw bits back.
+              xhr.overrideMimeType( "text/plain; charset=x-user-defined" );
+            }
+        }).done(function(result) {
             trackEvent('uploadUrl', 'finish');
             gifStream = new Stream(result);
             handleGifLoad(gifStream);
-          },
-          error: function(jqXHR, textStatus, errorThrown) {
+        }).fail(function(jqXHR, textStatus, errorThrown) {
             trackEvent('uploadUrl', 'error', errorThrown);
-            alert("Sorry, we had an error fetching this image. Maybe download it and upload it yourself? :\\");
+            showError("Sorry, we had an error fetching this image. It may be too large (>2MB) or imgur may be " +
+                      "having issues. Maybe upload it yourself? :\\");
+        });
+    }
+
+    /**
+     * Given a non-imgur URL, use the imgur API to copy it to imgur first, and then fetch from imgur afterward.
+    **/
+    function proxyNonImgurUrl(url) {
+        loading("Fetching (1 of 2)...");
+        trackEvent('proxyNonImgurUrl', 'start');
+
+        $.ajax({
+          url: 'https://api.imgur.com/3/image',
+          method: 'POST',
+          headers: {
+            Authorization: 'Client-ID ' + imgurClientId,
+            Accept: 'application/json'
+          },
+          data: {
+            "image": url,
+            "type": "URL"
           }
+        }).done(function(result) {
+            loading('Fetching (2 of 2)...');
+            trackEvent('proxyNonImgurUrl', 'finish');
+            url = "http://i.imgur.com/" + result.data.id + ".gif";
+            loadImgurUrl(url);
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            trackEvent('proxyNonImgurUrl', 'error', errorThrown);
+            showError("Sorry, we had an error fetching this image. It may be too large (>2MB) or imgur may be " +
+                      "having issues. Maybe upload it yourself? :\\");
         });
     }
 
@@ -337,6 +383,7 @@
 
         $('#source-gif').on('change', handleSelect);
         $('#source-url').on('click', function() {
+            // TODO: Better experience for this. Prompt? C'mon cdary.
             var url = prompt("Enter URL:");
             return handleUrlUpload(url);
         });
