@@ -55,7 +55,7 @@
     /** Yay Spinners **/
     function loading(status) {
         $('.gif-drop-icon').addClass('spin');
-        if (!$('.gif-drop.text').data('orig-html')) {
+        if (!$('.gif-drop-text').data('orig-html')) {
             $('.gif-drop-text').data('orig-html', $('.gif-drop-text').html());
         }
         $('.gif-drop-text').text(status);
