@@ -5,7 +5,6 @@
     var frames = [],
         frameDelays = [],
         tmpCanvas = document.createElement('canvas'),
-        frameDelay = null,
         gifStream = null,
         gifBlob = null,
         lastDisposalMethod = null,
@@ -78,13 +77,8 @@
      * Parse the Graphics Control Extension section of the GIF. Holds essentially metadata per frame.
     **/
     function parseGCE(gce) {
-        frameDelay = (gce.delayTime * 10) || 20; // jsgif uses centiseconds, gif.js milliseconds
-
-        /* anything < 20ms gets clobbered by most browsers */
-        if (frameDelay < 20) {
-            frameDelay = 20;
-        }
-
+        /* Convert from jsgif's centiseconds to gif.js' millseconds. Anything < 20ms gets clobbered by most browsers */
+        var frameDelay = Math.max(20, (gce.delayTime * 10));
         frameDelays.push(frameDelay);
 
         transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
