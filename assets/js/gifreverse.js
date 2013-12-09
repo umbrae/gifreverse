@@ -302,13 +302,13 @@
 
         trackEvent('uploadUrl', 'start');
 
-        if (a.host === "imgur.com") {
-            url = "http://i.imgur.com" + a.pathname + ".gif";
-        } else if (a.host !== "i.imgur.com") {
-            proxyNonImgurUrl(url);
-        } else {
-            loading('Fetching...');
+        loading('Fetching...');
+        if (a.host === "i.imgur.com") {
             loadImgurUrl(url);
+        } else if (a.host === "imgur.com") {
+            loadImgurUrl("http://i.imgur.com" + a.pathname + ".gif");
+        } else {
+            proxyNonImgurUrl(url);
         }
     }
 
