@@ -88,6 +88,13 @@ a:hover {
     font-weight: bold;
 }
 
+.cannot-send-to-imgur {
+    text-align: center;
+    color: #999;
+    font-size: 12px;
+    padding: 10px;
+}
+
 #send-to-imgur {
     border: 3px solid #444442;
     background-color: white;

@@ -164,7 +164,14 @@
             gifBlob = blob;
             $('.gif').attr('src', URL.createObjectURL(blob)).addClass('finished');
             $('#convert-progress, .gif-drop-icon, .gif-drop-text').hide();
-            $('#send-to-imgur').css('visibility', 'visible');
+
+            if (blob.size > 2097152) { // Two MB in bytes
+                $('<div class="cannot-send-to-imgur">').text(
+                    'Can\'t send this GIF to imgur: Too large (over 2MB).'
+                ).insertBefore('#send-to-imgur');
+            } else {
+                $('#send-to-imgur').css('visibility', 'visible');
+            }
 
             var timing = (new Date().getTime()) - timerStart;
             trackEvent('convert', 'finish', 'timing', timing);
@@ -210,7 +217,8 @@
 
         $('#send-to-imgur').addClass('sending');
         $('.send-status').text('Sending');
-
+        $(this).blur();
+        
         trackEvent('sendtoimgur', 'start');
         b64reader.readAsDataURL(gifBlob);
     }
