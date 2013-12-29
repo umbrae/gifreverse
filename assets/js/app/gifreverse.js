@@ -1,7 +1,7 @@
 /**
  * !GIF Reverse : Reverse GIF!
 **/
-(function() {
+define(['jquery', 'jsgif', 'gifjs'], function($, jsgif, gifjs) {
     var frames = [],
         frameDelays = [],
         tmpCanvas = document.createElement('canvas'),
@@ -141,10 +141,10 @@
      * Encode the frames into our reversed gif.
     **/
     function encodeGIF() {
-        var gif = new GIF({
+        var gif = new gifjs.GIF({
             "workers": 8, // Todo: figure out the best numbers here
             "quality": 5,
-            "workerScript": "assets/js/gif_js/gif.worker.js"
+            "workerScript": "assets/js/lib/gif_js/gif.worker.js"
         });
 
         /* Reset progress size to number of frames to encode, starting at 50% done. */
@@ -249,7 +249,7 @@
         timerStart = (new Date().getTime());
 
         try {
-            parseGIF(gifStream, handlers);
+            jsgif.parseGIF(gifStream, handlers);
         } catch(error) {
             trackEvent('convert', 'error');
             showError("Couldn't read this file. Is it an animated gif?");
@@ -269,7 +269,7 @@
         $('.gif-drop').removeClass('drag');
 
         reader.onload = function(e) {
-            gifStream = new Stream(e.target.result);
+            gifStream = new jsgif.Stream(e.target.result);
 
             handleGifLoad(gifStream);
         };
@@ -327,7 +327,7 @@
             }
         }).done(function(result) {
             trackEvent('uploadUrl', 'finish');
-            gifStream = new Stream(result);
+            gifStream = new jsgif.Stream(result);
             handleGifLoad(gifStream);
         }).fail(function(jqXHR, textStatus, errorThrown) {
             trackEvent('uploadUrl', 'error', errorThrown);
@@ -397,5 +397,7 @@
         $('#send-to-imgur').click(sendToImgur);
     }
 
-    $(document).ready(init);
-}());
+    return {
+        init: init
+    };
+});
