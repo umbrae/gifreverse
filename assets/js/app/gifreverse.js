@@ -81,7 +81,7 @@ define(['jquery', 'jsgif', 'gifjs'], function($, jsgif, gifjs) {
          * Convert from jsgif's centiseconds to gif.js' millseconds. Anything < 20ms gets clobbered by most browsers,
          * and 0 gets converted to 100ms by most browsers.
         **/
-        var frameDelay = gce.delayTime ? 100 : Math.max(20, (gce.delayTime * 10));
+        var frameDelay = !gce.delayTime ? 100 : Math.max(20, (gce.delayTime * 10));
         frameDelays.push(frameDelay);
 
         transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
